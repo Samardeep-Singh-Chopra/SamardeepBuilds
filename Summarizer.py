@@ -1,7 +1,7 @@
 from openai import OpenAI
 
 # Paste your NVIDIA API key here
-API_KEY = "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"
+API_KEY = "your_nvidia_api_key_here"
 
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
