@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HoloGest</title>
+  <style>
+    :root {
+      --bg: #03020a;
+      --cyan: #2ee9ff;
+      --green: #55ff9a;
+      --pink: #ff4fd8;
+      --gold: #ffd166;
+      --glass: rgba(9, 18, 38, 0.52);
+      --line: rgba(105, 238, 255, 0.28);
+      --text: rgba(237, 251, 255, 0.94);
+      --muted: rgba(204, 231, 238, 0.68);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 22%, rgba(46, 233, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 84% 20%, rgba(255, 79, 216, 0.16), transparent 28%),
+        radial-gradient(circle at 50% 86%, rgba(85, 255, 154, 0.12), transparent 34%),
+        #03020a;
+    }
+
+    #stage,
+    #fx,
+    #drawLayer {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+
+    #drawLayer { pointer-events: none; }
+
+    video {
+      position: fixed;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .topbar {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      right: 18px;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px 12px 18px;
+      border: 1px solid rgba(109, 237, 255, 0.24);
+      border-radius: 8px;
+      background: linear-gradient(120deg, rgba(10, 19, 43, 0.66), rgba(25, 9, 36, 0.5));
+      backdrop-filter: blur(18px) saturate(142%);
+      box-shadow: 0 0 28px rgba(46, 233, 255, 0.16), inset 0 0 28px rgba(46, 233, 255, 0.05);
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    .topbar::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(46, 233, 255, 0.18), transparent);
+      transform: translateX(-120%);
+      animation: topScan 4.8s linear infinite;
+    }
+
+    @keyframes topScan {
+      to { transform: translateX(120%); }
+    }
+
+    .brand {
+      position: relative;
+      min-width: 220px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(19px, 2.2vw, 30px);
+      line-height: 1;
+      font-weight: 850;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(46, 233, 255, 0.55);
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .modes {
+      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button {
+      min-width: 92px;
+      height: 42px;
+      border: 1px solid rgba(126, 241, 255, 0.32);
+      border-radius: 8px;
+      color: var(--text);
+      background: rgba(5, 12, 28, 0.62);
+      box-shadow: inset 0 0 18px rgba(46, 233, 255, 0.05);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 780;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(85, 255, 154, 0.62);
+      box-shadow: 0 0 20px rgba(85, 255, 154, 0.16), inset 0 0 20px rgba(85, 255, 154, 0.08);
+    }
+
+    button.active {
+      border-color: rgba(46, 233, 255, 0.9);
+      background: linear-gradient(135deg, rgba(46, 233, 255, 0.18), rgba(255, 79, 216, 0.14));
+      box-shadow: 0 0 24px rgba(46, 233, 255, 0.28), inset 0 0 18px rgba(46, 233, 255, 0.12);
+    }
+
+    .telemetry {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(74px, auto));
+      gap: 8px;
+      min-width: 270px;
+      justify-content: end;
+    }
+
+    .chip {
+      height: 42px;
+      display: grid;
+      align-content: center;
+      padding: 0 12px;
+      border: 1px solid rgba(126, 241, 255, 0.22);
+      border-radius: 8px;
+      background: rgba(3, 11, 24, 0.5);
+      text-align: right;
+      box-shadow: inset 0 0 18px rgba(46, 233, 255, 0.04);
+    }
+
+    .chip b {
+      font-size: 16px;
+      line-height: 1;
+      color: white;
+      text-shadow: 0 0 14px rgba(46, 233, 255, 0.6);
+    }
+
+    .chip small {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .sidepanel {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      width: min(360px, calc(100vw - 36px));
+      padding: 15px;
+      border: 1px solid rgba(126, 241, 255, 0.22);
+      border-radius: 8px;
+      background: rgba(4, 11, 25, 0.56);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 0 28px rgba(0, 0, 0, 0.28), inset 0 0 28px rgba(46, 233, 255, 0.04);
+      z-index: 9;
+    }
+
+    .statusRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .statusRow strong {
+      font-size: 13px;
+      text-transform: uppercase;
+      color: rgba(245, 253, 255, 0.96);
+    }
+
+    .statusLight {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 0 0 18px var(--pink);
+    }
+
+    .statusLight.ready {
+      background: var(--green);
+      box-shadow: 0 0 18px var(--green);
+    }
+
+    .hint {
+      min-height: 42px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .meter {
+      height: 5px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .meter span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cyan), var(--green), var(--pink));
+      box-shadow: 0 0 16px rgba(46, 233, 255, 0.6);
+      transition: width 100ms linear;
+    }
+
+    .score {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 8;
+      min-width: 148px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255, 209, 102, 0.32);
+      border-radius: 8px;
+      background: rgba(20, 12, 5, 0.42);
+      backdrop-filter: blur(14px);
+      text-align: right;
+      box-shadow: 0 0 24px rgba(255, 209, 102, 0.14);
+    }
+
+    .score b {
+      display: block;
+      font-size: 34px;
+      line-height: 0.9;
+      color: white;
+      text-shadow: 0 0 18px rgba(255, 209, 102, 0.65);
+    }
+
+    .score small {
+      color: rgba(255, 230, 178, 0.72);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .permission {
+      position: fixed;
+      inset: auto 50% 50%;
+      z-index: 20;
+      width: min(520px, calc(100vw - 34px));
+      transform: translate(50%, 50%);
+      padding: 24px;
+      border: 1px solid rgba(126, 241, 255, 0.28);
+      border-radius: 8px;
+      background: rgba(5, 12, 26, 0.74);
+      backdrop-filter: blur(22px);
+      text-align: center;
+      box-shadow: 0 0 60px rgba(46, 233, 255, 0.2);
+    }
+
+    .permission h2 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 5vw, 46px);
+      line-height: 0.95;
+      text-transform: uppercase;
+      text-shadow: 0 0 22px rgba(46, 233, 255, 0.7);
+    }
+
+    .permission p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .permission button {
+      width: min(280px, 100%);
+      height: 50px;
+      border-color: rgba(85, 255, 154, 0.62);
+      background: linear-gradient(135deg, rgba(85, 255, 154, 0.19), rgba(46, 233, 255, 0.16));
+    }
+
+    .toast {
+      position: fixed;
+      top: 108px;
+      left: 50%;
+      z-index: 11;
+      transform: translateX(-50%);
+      padding: 11px 16px;
+      border: 1px solid rgba(126, 241, 255, 0.25);
+      border-radius: 8px;
+      color: rgba(244, 253, 255, 0.95);
+      background: rgba(3, 10, 24, 0.62);
+      backdrop-filter: blur(14px);
+      opacity: 0;
+      transition: opacity 220ms ease, transform 220ms ease;
+      pointer-events: none;
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, -3px);
+    }
+
+    @media (max-width: 850px) {
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        padding: 12px;
+      }
+
+      .brand,
+      .telemetry {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .brand { text-align: center; }
+      .telemetry { grid-template-columns: repeat(3, 1fr); }
+      .chip { text-align: center; }
+      button { min-width: 78px; height: 38px; font-size: 11px; }
+      .sidepanel { left: 10px; bottom: 10px; }
+      .score { right: 10px; bottom: 10px; min-width: 116px; }
+      .score b { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <video id="video" playsinline muted></video>
+  <canvas id="stage"></canvas>
+  <canvas id="drawLayer"></canvas>
+  <canvas id="fx"></canvas>
+
+  <div class="topbar">
+    <div class="brand">
+      <h1>HoloGest</h1>
+      <span>By @samardeepbuilds</span>
+    </div>
+    <div class="modes" aria-label="Modes">
+      <button class="active" data-mode="play" title="Iron Man effects">Play</button>
+      <button data-mode="shapes" title="Gesture shapes">Shapes</button>
+      <button data-mode="write" title="Neon writing">Write</button>
+      <button data-mode="slash" title="Slice objects">Slash</button>
+    </div>
+    <div class="telemetry">
+      <div class="chip"><b id="fps">0</b><small>FPS</small></div>
+      <div class="chip"><b id="hands">0</b><small>Hands</small></div>
+      <div class="chip"><b id="gesture">IDLE</b><small>Gesture</small></div>
+    </div>
+  </div>
+
+  <div class="sidepanel">
+    <div class="statusRow">
+      <strong id="statusText">Awaiting Camera</strong>
+      <span class="statusLight" id="statusLight"></span>
+    </div>
+    <div class="hint" id="hint">Start the camera, then use pinch, peace, open palm, or both hands to activate holographic effects.</div>
+    <div class="meter"><span id="clearMeter"></span></div>
+  </div>
+
+  <div class="score" id="scoreBox">
+    <b id="score">0</b>
+    <small>Slash Score</small>
+  </div>
+
+  <div class="permission" id="permission">
+    <h2>Jarvis Mode</h2>
+    <p>Use your webcam to control neon hand tracking, holograms, writing, and slash effects. Works best in Chrome or Edge over localhost.</p>
+    <button id="startBtn">Initialize Camera</button>
+  </div>
+
+  <div class="toast" id="toast">Gesture Locked</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script>
+    const video = document.getElementById("video");
+    const stage = document.getElementById("stage");
+    const fx = document.getElementById("fx");
+    const drawLayer = document.getElementById("drawLayer");
+    const ctx = stage.getContext("2d", { alpha: false });
+    const fctx = fx.getContext("2d");
+    const dctx = drawLayer.getContext("2d");
+
+    const fpsEl = document.getElementById("fps");
+    const handsEl = document.getElementById("hands");
+    const gestureEl = document.getElementById("gesture");
+    const statusText = document.getElementById("statusText");
+    const statusLight = document.getElementById("statusLight");
+    const hint = document.getElementById("hint");
+    const clearMeter = document.getElementById("clearMeter");
+    const scoreEl = document.getElementById("score");
+    const toast = document.getElementById("toast");
+    const permission = document.getElementById("permission");
+    const startBtn = document.getElementById("startBtn");
+
+    const HAND_CONNECTIONS = [
+      [0, 1], [1, 2], [2, 3], [3, 4],
+      [0, 5], [5, 6], [6, 7], [7, 8],
+      [5, 9], [9, 10], [10, 11], [11, 12],
+      [9, 13], [13, 14], [14, 15], [15, 16],
+      [13, 17], [17, 18], [18, 19], [19, 20],
+      [0, 17]
+    ];
+
+    const tipIds = [4, 8, 12, 16, 20];
+    const state = {
+      mode: "play",
+      w: 0,
+      h: 0,
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
+      hands: [],
+      rawHands: [],
+      particles: [],
+      ripples: [],
+      bursts: [],
+      slashTrails: [],
+      slashObjects: [],
+      pulses: [],
+      lastFrame: performance.now(),
+      fpsFrames: 0,
+      fpsLast: performance.now(),
+      fps: 0,
+      time: 0,
+      handVelocity: 0,
+      score: 0,
+      stableCandidate: "idle",
+      stableSince: 0,
+      activeGesture: "idle",
+      lastTrigger: {},
+      clearStart: 0,
+      writing: false,
+      lastPen: null,
+      smoothPen: null,
+      reactor: { x: 0, y: 0, tx: 0, ty: 0, charge: 0.22, spin: 0, radius: 120 },
+      audioReady: false,
+      humGain: null,
+      humOsc: null,
+      cameraReady: false,
+      prevSlashTips: {},
+      demoUntil: performance.now() + 5000
+    };
+
+    const audio = {};
+
+    function resize() {
+      state.w = window.innerWidth;
+      state.h = window.innerHeight;
+      state.reactor.x = state.reactor.x || state.w / 2;
+      state.reactor.y = state.reactor.y || state.h / 2;
+      state.reactor.tx = state.reactor.tx || state.w / 2;
+      state.reactor.ty = state.reactor.ty || state.h / 2;
+      state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      for (const c of [stage, fx, drawLayer]) {
+        c.width = Math.floor(state.w * state.dpr);
+        c.height = Math.floor(state.h * state.dpr);
+        c.style.width = state.w + "px";
+        c.style.height = state.h + "px";
+      }
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      fctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      dctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      dctx.lineCap = "round";
+      dctx.lineJoin = "round";
+    }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function now() { return performance.now(); }
+
+    function normalizedToScreen(p) {
+      return {
+        x: (1 - p.x) * state.w,
+        y: p.y * state.h,
+        z: p.z || 0
+      };
+    }
+
+    function palmCenter(hand) {
+      const pts = [hand.points[0], hand.points[5], hand.points[9], hand.points[13], hand.points[17]];
+      return {
+        x: pts.reduce((sum, p) => sum + p.x, 0) / pts.length,
+        y: pts.reduce((sum, p) => sum + p.y, 0) / pts.length
+      };
+    }
+
+    function handScale(hand) {
+      return Math.max(40, dist(hand.points[0], hand.points[9]) * 2.1);
+    }
+
+    function initAudio() {
+      if (state.audioReady) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      audio.ctx = new AudioContext();
+      state.humGain = audio.ctx.createGain();
+      state.humGain.gain.value = 0;
+      state.humOsc = audio.ctx.createOscillator();
+      const humFilter = audio.ctx.createBiquadFilter();
+      state.humOsc.type = "sawtooth";
+      state.humOsc.frequency.value = 56;
+      humFilter.type = "lowpass";
+      humFilter.frequency.value = 220;
+      state.humOsc.connect(humFilter);
+      humFilter.connect(state.humGain);
+      state.humGain.connect(audio.ctx.destination);
+      state.humOsc.start();
+      state.audioReady = true;
+    }
+
+    function tone(freq, duration, type, gain, bend = 1) {
+      if (!state.audioReady || audio.ctx.state === "suspended") return;
+      const t = audio.ctx.currentTime;
+      const osc = audio.ctx.createOscillator();
+      const amp = audio.ctx.createGain();
+      const filter = audio.ctx.createBiquadFilter();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * bend), t + duration);
+      filter.type = "highpass";
+      filter.frequency.value = 160;
+      amp.gain.setValueAtTime(0.0001, t);
+      amp.gain.exponentialRampToValueAtTime(gain, t + 0.015);
+      amp.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+      osc.connect(filter);
+      filter.connect(amp);
+      amp.connect(audio.ctx.destination);
+      osc.start(t);
+      osc.stop(t + duration + 0.02);
+    }
+
+    function zap() {
+      tone(720, 0.13, "sawtooth", 0.075, 2.2);
+      tone(1800, 0.08, "square", 0.032, 0.35);
+    }
+
+    function pop() {
+      tone(420, 0.1, "triangle", 0.06, 1.7);
+      tone(1200, 0.08, "sine", 0.025, 0.75);
+    }
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 900);
+    }
+
+    function addRipple(x, y, color = "rgba(46,233,255,") {
+      state.ripples.push({ x, y, r: 8, age: 0, life: 0.8, color });
+      state.pulses.push({ x, y, age: 0, life: 0.9 });
+    }
+
+    function addBurst(x, y, color = "#2ee9ff", count = 20) {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const s = 1.5 + Math.random() * 5.5;
+        state.particles.push({
+          x, y,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s,
+          life: 0.55 + Math.random() * 0.45,
+          age: 0,
+          size: 1.5 + Math.random() * 4,
+          color
+        });
+      }
+    }
+
+    function updateHandsFromResults(results) {
+      const next = [];
+      const landmarks = results.multiHandLandmarks || [];
+      const handed = results.multiHandedness || [];
+      landmarks.forEach((lm, i) => {
+        const label = handed[i]?.label || "Hand";
+        const score = handed[i]?.score || 0;
+        if (score < 0.62) return;
+        const points = lm.map(normalizedToScreen);
+        const key = label + i;
+        const previous = state.hands.find(h => h.key === key) || state.hands[i];
+        if (previous && previous.points?.length === points.length) {
+          for (let p = 0; p < points.length; p++) {
+            points[p].x = lerp(previous.points[p].x, points[p].x, 0.36);
+            points[p].y = lerp(previous.points[p].y, points[p].y, 0.36);
+            points[p].z = lerp(previous.points[p].z, points[p].z, 0.36);
+          }
+        }
+        const center = palmCenter({ points });
+        const prevCenter = previous ? previous.center : center;
+        const velocity = Math.hypot(center.x - prevCenter.x, center.y - prevCenter.y);
+        next.push({ key, label, score, points, center, velocity, lastSeen: now() });
+      });
+      state.handVelocity = next.reduce((sum, h) => sum + h.velocity, 0) / Math.max(1, next.length);
+      state.hands = next;
+    }
+
+    function fingerStates(hand) {
+      const p = hand.points;
+      const scale = handScale(hand);
+      const wrist = p[0];
+      const opened = {
+        thumb: dist(p[4], wrist) > dist(p[3], wrist) + scale * 0.05,
+        index: dist(p[8], wrist) > dist(p[6], wrist) + scale * 0.12 && p[8].y < p[6].y + scale * 0.22,
+        middle: dist(p[12], wrist) > dist(p[10], wrist) + scale * 0.12 && p[12].y < p[10].y + scale * 0.22,
+        ring: dist(p[16], wrist) > dist(p[14], wrist) + scale * 0.1 && p[16].y < p[14].y + scale * 0.22,
+        pinky: dist(p[20], wrist) > dist(p[18], wrist) + scale * 0.1 && p[20].y < p[18].y + scale * 0.22
+      };
+      const count = Object.values(opened).filter(Boolean).length;
+      return { ...opened, count };
+    }
+
+    function isPinch(hand) {
+      const scale = handScale(hand);
+      const d = dist(hand.points[4], hand.points[8]);
+      return d < scale * 0.24 && dist(hand.points[8], hand.points[5]) > scale * 0.24;
+    }
+
+    function isPeace(hand) {
+      const f = fingerStates(hand);
+      const p = hand.points;
+      const scale = handScale(hand);
+      const spread = dist(p[8], p[12]);
+      const foldedRing = dist(p[16], p[0]) < dist(p[13], p[0]) + scale * 0.45;
+      const foldedPinky = dist(p[20], p[0]) < dist(p[17], p[0]) + scale * 0.45;
+      return f.index && f.middle && !f.ring && !f.pinky && foldedRing && foldedPinky && spread > scale * 0.2 && spread < scale * 0.75;
+    }
+
+    function isFingerHeart(hand) {
+      const p = hand.points;
+      const f = fingerStates(hand);
+      const scale = handScale(hand);
+      const thumbIndex = dist(p[4], p[8]);
+      const thumbMiddle = dist(p[4], p[12]);
+      const foldedBackFingers = !f.middle && !f.ring && !f.pinky;
+      const indexBent = p[8].y > p[6].y - scale * 0.08 || dist(p[8], p[6]) < scale * 0.42;
+      return thumbIndex < scale * 0.34 && thumbMiddle > scale * 0.24 && foldedBackFingers && indexBent;
+    }
+
+    function isThumbsUp(hand) {
+      const p = hand.points;
+      const f = fingerStates(hand);
+      const scale = handScale(hand);
+      const thumbHigh = p[4].y < p[3].y - scale * 0.07;
+      const thumbLong = dist(p[4], p[0]) > scale * 0.42;
+      return f.thumb && !f.index && !f.middle && !f.ring && !f.pinky && thumbHigh && thumbLong;
+    }
+
+    function isOpenPalm(hand) {
+      const f = fingerStates(hand);
+      const spread = dist(hand.points[4], hand.points[20]);
+      return f.count >= 4 && spread > handScale(hand) * 0.55;
+    }
+
+    function isHeart(hands) {
+      if (hands.length < 2) return false;
+      const [a, b] = hands;
+      const fa = fingerStates(a);
+      const fb = fingerStates(b);
+      const palmDistance = dist(a.center, b.center);
+      const scale = (handScale(a) + handScale(b)) / 2;
+      const thumbsClose = dist(a.points[4], b.points[4]) < scale * 0.48;
+      const indexClose = dist(a.points[8], b.points[8]) < scale * 0.55;
+      const palmsClose = palmDistance < scale * 1.45;
+      return fa.count >= 4 && fb.count >= 4 && palmsClose && thumbsClose && indexClose;
+    }
+
+    function classifyGesture() {
+      const hands = state.hands;
+      let candidate = "idle";
+      if (hands.length) {
+        if (state.mode === "shapes" && hands.some(isPeace)) candidate = "peace";
+        else if (state.mode === "shapes" && hands.some(isThumbsUp)) candidate = "ok";
+        else if (state.mode === "shapes" && hands.some(isFingerHeart)) candidate = "fingerHeart";
+        else if (state.mode === "shapes" && isHeart(hands)) candidate = "heart";
+        else if (hands.some(isPinch)) candidate = "pinch";
+        else if (hands.some(isThumbsUp)) candidate = "ok";
+        else if (hands.some(isPeace)) candidate = "peace";
+        else if (hands.some(isOpenPalm)) candidate = "open";
+        else if (hands.length >= 2) candidate = "twoHands";
+      }
+
+      const t = now();
+      if (candidate !== state.stableCandidate) {
+        state.stableCandidate = candidate;
+        state.stableSince = t;
+      }
+
+      const elapsed = t - state.stableSince;
+      if (elapsed > 400 && candidate !== state.activeGesture) {
+        state.activeGesture = candidate;
+        if (candidate !== "idle") triggerGesture(candidate);
+      }
+      gestureEl.textContent = state.activeGesture.toUpperCase();
+      return { candidate, elapsed };
+    }
+
+    function triggerGesture(gesture) {
+      const t = now();
+      if (t - (state.lastTrigger[gesture] || 0) < 600) return;
+      state.lastTrigger[gesture] = t;
+      if (gesture === "pinch") {
+        const h = state.hands.find(isPinch);
+        const p = h ? h.points[8] : { x: state.w / 2, y: state.h / 2 };
+        addRipple(p.x, p.y);
+        addBurst(p.x, p.y, "#2ee9ff", 18);
+        zap();
+      } else if (gesture === "heart") {
+        pop();
+        showToast("Heart Hologram Locked");
+      } else if (gesture === "fingerHeart") {
+        pop();
+        showToast("Korean Heart Locked");
+      } else if (gesture === "ok") {
+        pop();
+        showToast("OK Signal Locked");
+      } else if (gesture === "peace") {
+        pop();
+        showToast("Peace Signal Locked");
+      }
+    }
+
+    function updateAudio() {
+      if (!state.audioReady || !state.humGain) return;
+      const target = state.hands.length >= 2 ? 0.035 : 0;
+      state.humGain.gain.setTargetAtTime(target, audio.ctx.currentTime, 0.12);
+    }
+
+    function drawBackground(dt, gestureInfo) {
+      ctx.fillStyle = "#03020a";
+      ctx.fillRect(0, 0, state.w, state.h);
+      drawCameraFeed();
+      const t = state.time;
+      const energy = clamp(state.handVelocity / 34, 0, 1);
+
+      ctx.save();
+      ctx.globalAlpha = 0.36 + energy * 0.28;
+      ctx.strokeStyle = "rgba(46,233,255,0.18)";
+      ctx.lineWidth = 1;
+      const grid = 54;
+      const off = (t * 16) % grid;
+      for (let x = -grid + off; x < state.w + grid; x += grid) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + Math.sin(t + x * 0.01) * 10, state.h);
+        ctx.stroke();
+      }
+      for (let y = -grid + off; y < state.h + grid; y += grid) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(state.w, y + Math.cos(t + y * 0.01) * 8);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      const cx = state.w / 2;
+      const cy = state.h / 2;
+      for (let i = 0; i < 5; i++) {
+        const r = 92 + i * 72 + Math.sin(t * 1.4 + i) * 8;
+        const start = t * (i % 2 ? -0.32 : 0.42) + i;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(start);
+        ctx.strokeStyle = i % 2 ? "rgba(255,79,216,0.16)" : "rgba(46,233,255,0.18)";
+        ctx.lineWidth = 1.2 + energy * 1.8;
+        ctx.setLineDash([18 + i * 4, 16, 6, 24]);
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      const scanY = (t * 110) % state.h;
+      const grad = ctx.createLinearGradient(0, scanY - 18, 0, scanY + 18);
+      grad.addColorStop(0, "rgba(46,233,255,0)");
+      grad.addColorStop(0.5, `rgba(46,233,255,${0.18 + energy * 0.22})`);
+      grad.addColorStop(1, "rgba(46,233,255,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, scanY - 18, state.w, 36);
+
+      if (!state.hands.length) drawIdleDemo();
+
+      for (let i = state.pulses.length - 1; i >= 0; i--) {
+        const p = state.pulses[i];
+        p.age += dt;
+        const k = p.age / p.life;
+        if (k >= 1) {
+          state.pulses.splice(i, 1);
+          continue;
+        }
+        const radius = 100 + k * 560;
+        const g = ctx.createRadialGradient(p.x, p.y, 4, p.x, p.y, radius);
+        g.addColorStop(0, `rgba(46,233,255,${0.12 * (1 - k)})`);
+        g.addColorStop(0.3, `rgba(255,79,216,${0.06 * (1 - k)})`);
+        g.addColorStop(1, "rgba(46,233,255,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      drawGesturePreview(gestureInfo);
+    }
+
+    function drawCameraFeed() {
+      if (!state.cameraReady || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return;
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const scale = Math.max(state.w / vw, state.h / vh);
+      const dw = vw * scale;
+      const dh = vh * scale;
+      const dx = (state.w - dw) / 2;
+      const dy = (state.h - dh) / 2;
+      ctx.save();
+      ctx.translate(state.w, 0);
+      ctx.scale(-1, 1);
+      ctx.globalAlpha = 0.62;
+      ctx.filter = "contrast(1.18) saturate(0.86) brightness(0.72)";
+      ctx.drawImage(video, dx, dy, dw, dh);
+      ctx.filter = "none";
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "rgba(3,2,10,0.22)";
+      ctx.fillRect(0, 0, state.w, state.h);
+      ctx.restore();
+    }
+
+    function drawIdleDemo() {
+      const t = state.time;
+      const cx = state.w * 0.5;
+      const cy = state.h * 0.55;
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      for (let i = 0; i < 3; i++) {
+        const r = 48 + i * 48 + Math.sin(t * 2 + i) * 8;
+        ctx.strokeStyle = i === 1 ? "rgba(255,79,216,0.28)" : "rgba(46,233,255,0.32)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([14, 12]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, t * 0.8, t * 0.8 + Math.PI * 1.55);
+        ctx.stroke();
+      }
+      for (let i = 0; i < 28; i++) {
+        const a = t * 0.8 + i * 0.72;
+        const r = 80 + Math.sin(t * 1.8 + i) * 34;
+        ctx.fillStyle = i % 3 ? "rgba(46,233,255,0.42)" : "rgba(85,255,154,0.42)";
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a * 0.9) * r * 0.42, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawGesturePreview(info) {
+      if (!state.hands.length || info.candidate === "idle") return;
+      const progress = clamp(info.elapsed / 400, 0, 1);
+      const c = state.hands[0].center;
+      ctx.save();
+      ctx.globalAlpha = 0.3 + progress * 0.6;
+      ctx.strokeStyle = info.candidate === "peace" ? "rgba(255,79,216,0.8)" : "rgba(85,255,154,0.78)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, 42 + progress * 30, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawHands(dt) {
+      state.hands.forEach(hand => {
+        const energy = clamp((hand.velocity + state.handVelocity) / 38, 0, 1);
+        ctx.save();
+        ctx.shadowBlur = 14 + energy * 28;
+        ctx.shadowColor = "rgba(46,233,255,0.85)";
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(46,233,255,0.24)";
+        HAND_CONNECTIONS.forEach(([a, b]) => {
+          ctx.beginPath();
+          ctx.moveTo(hand.points[a].x, hand.points[a].y);
+          ctx.lineTo(hand.points[b].x, hand.points[b].y);
+          ctx.stroke();
+        });
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = "rgba(128,255,208,0.88)";
+        HAND_CONNECTIONS.forEach(([a, b]) => {
+          ctx.beginPath();
+          ctx.moveTo(hand.points[a].x, hand.points[a].y);
+          ctx.lineTo(hand.points[b].x, hand.points[b].y);
+          ctx.stroke();
+        });
+        hand.points.forEach((p, i) => {
+          const isTip = tipIds.includes(i);
+          ctx.fillStyle = isTip ? "rgba(255,255,255,0.96)" : "rgba(46,233,255,0.82)";
+          ctx.shadowBlur = isTip ? 22 : 10;
+          ctx.shadowColor = isTip ? "rgba(255,79,216,0.86)" : "rgba(46,233,255,0.7)";
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, isTip ? 5.2 : 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        tipIds.forEach(id => {
+          const p = hand.points[id];
+          if (Math.random() < 0.5 + energy * 0.4) {
+            state.particles.push({
+              x: p.x,
+              y: p.y,
+              vx: (Math.random() - 0.5) * (1.2 + energy * 3),
+              vy: (Math.random() - 0.5) * (1.2 + energy * 3),
+              life: 0.24 + Math.random() * 0.36,
+              age: 0,
+              size: 1.4 + Math.random() * 2.2,
+              color: id === 8 ? "#ff4fd8" : "#2ee9ff"
+            });
+          }
+        });
+        ctx.restore();
+
+        if (state.mode === "play" && isPinch(hand)) drawPinchLock(hand.points[8]);
+      });
+    }
+
+    function drawPinchLock(p) {
+      const t = state.time;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(t * 1.8);
+      ctx.strokeStyle = "rgba(85,255,154,0.86)";
+      ctx.shadowColor = "rgba(85,255,154,0.8)";
+      ctx.shadowBlur = 20;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([20, 8, 5, 8]);
+      ctx.beginPath();
+      ctx.arc(0, 0, 38 + Math.sin(t * 8) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      for (let i = 0; i < 4; i++) {
+        ctx.rotate(Math.PI / 2);
+        ctx.beginPath();
+        ctx.moveTo(48, 0);
+        ctx.lineTo(72, 0);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function updatePlayReactor(dt) {
+      if (state.mode !== "play") return;
+      const reactor = state.reactor;
+      const pinchHand = state.hands.find(isPinch);
+      const openHand = state.hands.find(isOpenPalm);
+      const twoHands = state.hands.length >= 2;
+      if (pinchHand) {
+        const p = pinchHand.points[8];
+        reactor.tx = p.x;
+        reactor.ty = p.y;
+        reactor.charge = clamp(reactor.charge + dt * 1.6, 0.2, 1);
+      } else if (twoHands) {
+        reactor.tx = (state.hands[0].center.x + state.hands[1].center.x) / 2;
+        reactor.ty = (state.hands[0].center.y + state.hands[1].center.y) / 2;
+        reactor.charge = clamp(reactor.charge + dt * 0.75, 0.2, 1);
+      } else if (openHand) {
+        reactor.tx = lerp(reactor.tx, state.w / 2 + (reactor.x - openHand.center.x) * 0.18, 0.08);
+        reactor.ty = lerp(reactor.ty, state.h / 2 + (reactor.y - openHand.center.y) * 0.18, 0.08);
+        reactor.charge = clamp(reactor.charge + dt * 0.35, 0.2, 0.86);
+      } else {
+        reactor.tx = lerp(reactor.tx, state.w / 2, 0.018);
+        reactor.ty = lerp(reactor.ty, state.h / 2, 0.018);
+        reactor.charge = lerp(reactor.charge, 0.28 + clamp(state.handVelocity / 80, 0, 0.28), 0.05);
+      }
+      reactor.x = lerp(reactor.x, reactor.tx, pinchHand ? 0.2 : 0.08);
+      reactor.y = lerp(reactor.y, reactor.ty, pinchHand ? 0.2 : 0.08);
+      reactor.spin += dt * (1.2 + reactor.charge * 5 + clamp(state.handVelocity / 20, 0, 3));
+      reactor.radius = lerp(reactor.radius, 92 + reactor.charge * 72 + (twoHands ? 42 : 0), 0.08);
+      drawReactorCore(reactor, pinchHand, twoHands);
+    }
+
+    function drawReactorCore(reactor, pinchHand, twoHands) {
+      const t = state.time;
+      ctx.save();
+      ctx.translate(reactor.x, reactor.y);
+      ctx.globalCompositeOperation = "lighter";
+      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, reactor.radius * 1.65);
+      glow.addColorStop(0, `rgba(255,255,255,${0.26 + reactor.charge * 0.22})`);
+      glow.addColorStop(0.16, `rgba(46,233,255,${0.22 + reactor.charge * 0.36})`);
+      glow.addColorStop(0.48, `rgba(255,79,216,${0.12 + reactor.charge * 0.16})`);
+      glow.addColorStop(1, "rgba(46,233,255,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, reactor.radius * 1.65, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let i = 0; i < 6; i++) {
+        ctx.save();
+        ctx.rotate(reactor.spin * (i % 2 ? -0.32 : 0.46) + i * Math.PI / 6);
+        ctx.strokeStyle = i % 2 ? "rgba(255,79,216,0.75)" : "rgba(85,255,154,0.72)";
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 24;
+        ctx.lineWidth = 1.4 + reactor.charge * 2.4;
+        ctx.setLineDash([26, 12, 7, 18]);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, reactor.radius * (0.42 + i * 0.075), reactor.radius * (0.18 + i * 0.035), 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.rotate(-reactor.spin * 0.8);
+      ctx.strokeStyle = "rgba(255,255,255,0.94)";
+      ctx.shadowColor = "rgba(46,233,255,0.9)";
+      ctx.shadowBlur = 30;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 28 + reactor.charge * 18 + Math.sin(t * 10) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      state.hands.forEach(hand => {
+        const p = isPinch(hand) ? hand.points[8] : hand.center;
+        const energy = isPinch(hand) ? 0.88 : 0.42;
+        ctx.strokeStyle = `rgba(46,233,255,${energy})`;
+        ctx.shadowColor = "rgba(46,233,255,0.85)";
+        ctx.shadowBlur = 22;
+        ctx.lineWidth = isPinch(hand) ? 4 : 1.8;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.quadraticCurveTo((p.x + reactor.x) / 2, (p.y + reactor.y) / 2 + Math.sin(t * 8) * 34, reactor.x, reactor.y);
+        ctx.stroke();
+      });
+      ctx.restore();
+
+      if (pinchHand && Math.random() < 0.28) addBurst(reactor.x, reactor.y, "#2ee9ff", 2);
+      if (twoHands) drawTwoHandFX();
+    }
+
+    function drawTwoHandFX() {
+      if (state.hands.length < 2) return;
+      const [a, b] = state.hands;
+      const mid = { x: (a.center.x + b.center.x) / 2, y: (a.center.y + b.center.y) / 2 };
+      const d = dist(a.center, b.center);
+      const angle = Math.atan2(b.center.y - a.center.y, b.center.x - a.center.x);
+      ctx.save();
+      ctx.translate(mid.x, mid.y);
+      ctx.rotate(angle + state.time * 0.8);
+      ctx.strokeStyle = "rgba(46,233,255,0.78)";
+      ctx.shadowColor = "rgba(46,233,255,0.82)";
+      ctx.shadowBlur = 26;
+      ctx.lineWidth = 2.2;
+      for (let i = 0; i < 4; i++) {
+        ctx.setLineDash([22, 12, 8, 16]);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, d * (0.28 + i * 0.075), 34 + i * 13, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.rotate(Math.PI / 8);
+      }
+      ctx.restore();
+      if (d < 360) {
+        for (let i = 0; i < 5; i++) drawArc(a.points[8], b.points[8], i);
+      }
+    }
+
+    function drawArc(a, b, index) {
+      const midx = (a.x + b.x) / 2;
+      const midy = (a.y + b.y) / 2;
+      const bend = Math.sin(state.time * 12 + index) * 60;
+      ctx.save();
+      ctx.strokeStyle = index % 2 ? "rgba(255,79,216,0.62)" : "rgba(85,255,154,0.62)";
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.lineWidth = 1.2 + Math.random() * 1.8;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.quadraticCurveTo(midx + bend, midy - bend * 0.45, b.x, b.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawShapeMode() {
+      const heart = state.activeGesture === "heart" || state.activeGesture === "fingerHeart";
+      const peaceHand = state.hands.find(isPeace);
+      const fingerHeartHand = state.hands.find(isFingerHeart);
+      const okHand = state.hands.find(isThumbsUp);
+      if (heart && (state.hands.length >= 2 || fingerHeartHand)) {
+        const mid = fingerHeartHand
+          ? { x: fingerHeartHand.points[8].x, y: fingerHeartHand.points[8].y - 28 }
+          : { x: (state.hands[0].center.x + state.hands[1].center.x) / 2, y: (state.hands[0].center.y + state.hands[1].center.y) / 2 };
+        const s = fingerHeartHand ? 96 : clamp(dist(state.hands[0].center, state.hands[1].center) * 0.55, 70, 180);
+        ctx.save();
+        ctx.translate(mid.x, mid.y - s * 0.08);
+        ctx.scale(s / 100, s / 100);
+        ctx.strokeStyle = "rgba(255,79,216,0.94)";
+        ctx.shadowColor = "rgba(255,79,216,0.9)";
+        ctx.shadowBlur = 34;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(0, 32);
+        ctx.bezierCurveTo(-82, -24, -40, -90, 0, -44);
+        ctx.bezierCurveTo(40, -90, 82, -24, 0, 32);
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (state.activeGesture === "ok" && okHand) {
+        const p = okHand.center;
+        ctx.save();
+        ctx.translate(p.x, p.y - 36);
+        ctx.strokeStyle = "rgba(85,255,154,0.95)";
+        ctx.shadowColor = "rgba(85,255,154,0.95)";
+        ctx.shadowBlur = 30;
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.arc(-18, 0, 27, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(28, 28);
+        ctx.lineTo(28, -28);
+        ctx.lineTo(68, 26);
+        ctx.moveTo(78, -30);
+        ctx.lineTo(78, 30);
+        ctx.moveTo(78, 0);
+        ctx.lineTo(118, -30);
+        ctx.moveTo(78, 0);
+        ctx.lineTo(120, 30);
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (state.activeGesture === "peace" && peaceHand) {
+        const p = peaceHand.center;
+        ctx.save();
+        ctx.translate(p.x, p.y - 34);
+        ctx.strokeStyle = "rgba(255,255,255,0.98)";
+        ctx.shadowColor = "rgba(46,233,255,0.92)";
+        ctx.shadowBlur = 30;
+        ctx.lineWidth = 9;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(-16, 52);
+        ctx.lineTo(-35, -36);
+        ctx.moveTo(16, 52);
+        ctx.lineTo(35, -36);
+        ctx.moveTo(-10, 24);
+        ctx.lineTo(14, 58);
+        ctx.stroke();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,79,216,0.8)";
+        ctx.beginPath();
+        ctx.arc(0, 10, 74 + Math.sin(state.time * 5) * 4, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function updateWriteMode(dt) {
+      if (state.mode !== "write") return;
+      const hand = state.hands[0];
+      if (!hand) {
+        state.lastPen = null;
+        state.clearStart = 0;
+        clearMeter.style.width = "0%";
+        return;
+      }
+
+      const pen = hand.points[8];
+      state.smoothPen = state.smoothPen
+        ? { x: lerp(state.smoothPen.x, pen.x, 0.38), y: lerp(state.smoothPen.y, pen.y, 0.38) }
+        : { x: pen.x, y: pen.y };
+
+      drawCursor(state.smoothPen);
+
+      const open = isOpenPalm(hand);
+      if (open) {
+        if (!state.clearStart) state.clearStart = now();
+        const progress = clamp((now() - state.clearStart) / 500, 0, 1);
+        clearMeter.style.width = Math.round(progress * 100) + "%";
+        drawClearProgress(hand.center, progress);
+        if (progress >= 1) {
+          dctx.clearRect(0, 0, state.w, state.h);
+          state.clearStart = 0;
+          clearMeter.style.width = "0%";
+          pop();
+          showToast("Canvas Cleared");
+        }
+        state.lastPen = null;
+        return;
+      }
+      state.clearStart = 0;
+      clearMeter.style.width = "0%";
+
+      if (state.lastPen && !isPinch(hand)) {
+        const mid = {
+          x: (state.lastPen.x + state.smoothPen.x) / 2,
+          y: (state.lastPen.y + state.smoothPen.y) / 2
+        };
+        dctx.save();
+        dctx.globalCompositeOperation = "lighter";
+        dctx.shadowBlur = 18;
+        dctx.shadowColor = "rgba(255,79,216,0.86)";
+        dctx.strokeStyle = "rgba(255,79,216,0.68)";
+        dctx.lineWidth = 13;
+        dctx.beginPath();
+        dctx.moveTo(state.lastPen.x, state.lastPen.y);
+        dctx.quadraticCurveTo(state.lastPen.x, state.lastPen.y, mid.x, mid.y);
+        dctx.stroke();
+        dctx.shadowBlur = 8;
+        dctx.strokeStyle = "rgba(255,255,255,0.96)";
+        dctx.lineWidth = 3;
+        dctx.beginPath();
+        dctx.moveTo(state.lastPen.x, state.lastPen.y);
+        dctx.quadraticCurveTo(state.lastPen.x, state.lastPen.y, mid.x, mid.y);
+        dctx.stroke();
+        dctx.restore();
+      }
+      state.lastPen = { ...state.smoothPen };
+    }
+
+    function drawCursor(p) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,79,216,0.9)";
+      ctx.fillStyle = "rgba(255,255,255,0.96)";
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = "rgba(255,79,216,0.95)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 10 + Math.sin(state.time * 8) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawClearProgress(p, progress) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(85,255,154,0.9)";
+      ctx.shadowColor = "rgba(85,255,154,0.8)";
+      ctx.shadowBlur = 20;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 58, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function spawnSlashObject() {
+      const size = 34 + Math.random() * 38;
+      const fromSide = Math.random() < 0.28;
+      state.slashObjects.push({
+        x: fromSide ? (Math.random() < 0.5 ? -size : state.w + size) : Math.random() * state.w,
+        y: fromSide ? state.h * (0.28 + Math.random() * 0.42) : state.h + size,
+        vx: fromSide ? (Math.random() < 0.5 ? 3.1 : -3.1) : (Math.random() - 0.5) * 2,
+        vy: fromSide ? (-2.2 - Math.random() * 2.2) : (-5.2 - Math.random() * 4),
+        g: 0.055 + Math.random() * 0.035,
+        r: size,
+        rot: Math.random() * Math.PI,
+        spin: (Math.random() - 0.5) * 0.08,
+        hue: Math.random() < 0.5 ? 184 : (Math.random() < 0.5 ? 324 : 138),
+        sliced: false
+      });
+    }
+
+    function updateSlashMode(dt) {
+      if (state.mode !== "slash") return;
+      if (state.slashObjects.length < 8 && Math.random() < 0.06) spawnSlashObject();
+      const slashSegments = collectSlashSegments();
+      for (let i = state.slashObjects.length - 1; i >= 0; i--) {
+        const o = state.slashObjects[i];
+        o.x += o.vx * 60 * dt;
+        o.y += o.vy * 60 * dt;
+        o.vy += o.g * 60 * dt;
+        o.rot += o.spin * 60 * dt;
+        for (const seg of slashSegments) {
+          const close = distanceToSegment(o, seg.prev, seg.tip);
+          if (close < o.r * 1.16 && seg.speed > 7) {
+            addBurst(o.x, o.y, `hsl(${o.hue} 100% 68%)`, 34);
+            state.score += 10;
+            scoreEl.textContent = state.score;
+            state.slashObjects.splice(i, 1);
+            pop();
+            break;
+          }
+        }
+        if (o.y > state.h + o.r * 2 || o.x < -100 || o.x > state.w + 100) state.slashObjects.splice(i, 1);
+      }
+      drawSlashObjects();
+    }
+
+    function collectSlashSegments() {
+      const trackedTips = [4, 8, 12];
+      const nextTips = {};
+      const segments = [];
+      state.hands.forEach((hand, handIndex) => {
+        trackedTips.forEach(id => {
+          const tip = hand.points[id];
+          const key = `${handIndex}-${id}`;
+          const prev = state.prevSlashTips[key] || tip;
+          const speed = Math.hypot(tip.x - prev.x, tip.y - prev.y);
+          if (speed > 3) {
+            state.slashTrails.push({
+              x1: prev.x,
+              y1: prev.y,
+              x2: tip.x,
+              y2: tip.y,
+              age: 0,
+              life: 0.42,
+              width: id === 8 ? 12 : 7
+            });
+            segments.push({ prev, tip, speed });
+          }
+          nextTips[key] = { x: tip.x, y: tip.y };
+        });
+      });
+      state.prevSlashTips = nextTips;
+      return segments;
+    }
+
+    function distanceToSegment(p, v, w) {
+      const l2 = (v.x - w.x) ** 2 + (v.y - w.y) ** 2;
+      if (l2 === 0) return dist(p, v);
+      let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+      t = clamp(t, 0, 1);
+      return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+    }
+
+    function drawSlashObjects() {
+      state.slashObjects.forEach(o => {
+        ctx.save();
+        ctx.translate(o.x, o.y);
+        ctx.rotate(o.rot);
+        ctx.shadowBlur = 26;
+        ctx.shadowColor = `hsl(${o.hue} 100% 58%)`;
+        const g = ctx.createRadialGradient(-o.r * 0.25, -o.r * 0.25, 2, 0, 0, o.r);
+        g.addColorStop(0, "white");
+        g.addColorStop(0.26, `hsl(${o.hue} 100% 70%)`);
+        g.addColorStop(1, `hsl(${o.hue} 82% 34%)`);
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, o.r * 0.8, o.r, 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.42)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    function updateParticles(dt) {
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.age += dt;
+        if (p.age >= p.life) {
+          state.particles.splice(i, 1);
+          continue;
+        }
+        p.x += p.vx * 60 * dt;
+        p.y += p.vy * 60 * dt;
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+      }
+      for (let i = state.ripples.length - 1; i >= 0; i--) {
+        const r = state.ripples[i];
+        r.age += dt;
+        r.r += 220 * dt;
+        if (r.age >= r.life) state.ripples.splice(i, 1);
+      }
+      for (let i = state.slashTrails.length - 1; i >= 0; i--) {
+        const s = state.slashTrails[i];
+        s.age += dt;
+        if (s.age >= s.life) state.slashTrails.splice(i, 1);
+      }
+    }
+
+    function drawParticles() {
+      fctx.clearRect(0, 0, state.w, state.h);
+      fctx.save();
+      fctx.globalCompositeOperation = "lighter";
+      state.ripples.forEach(r => {
+        const k = 1 - r.age / r.life;
+        fctx.strokeStyle = `${r.color}${0.75 * k})`;
+        fctx.shadowBlur = 24;
+        fctx.shadowColor = `${r.color}0.7)`;
+        fctx.lineWidth = 2.2 + k * 4;
+        fctx.beginPath();
+        fctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+        fctx.stroke();
+        fctx.lineWidth = 1;
+        fctx.setLineDash([12, 10]);
+        fctx.beginPath();
+        fctx.arc(r.x, r.y, r.r * 0.66, 0, Math.PI * 2);
+        fctx.stroke();
+        fctx.setLineDash([]);
+      });
+      state.particles.forEach(p => {
+        const k = 1 - p.age / p.life;
+        fctx.fillStyle = p.color;
+        fctx.globalAlpha = k;
+        fctx.shadowBlur = 14;
+        fctx.shadowColor = p.color;
+        fctx.beginPath();
+        fctx.arc(p.x, p.y, p.size * k, 0, Math.PI * 2);
+        fctx.fill();
+      });
+      state.slashTrails.forEach(s => {
+        const k = 1 - s.age / s.life;
+        fctx.globalAlpha = k;
+        fctx.strokeStyle = "rgba(255,255,255,0.95)";
+        fctx.shadowBlur = 28;
+        fctx.shadowColor = "rgba(255,79,216,0.92)";
+        fctx.lineWidth = s.width || 9;
+        fctx.beginPath();
+        fctx.moveTo(s.x1, s.y1);
+        fctx.lineTo(s.x2, s.y2);
+        fctx.stroke();
+        fctx.strokeStyle = "rgba(46,233,255,0.9)";
+        fctx.lineWidth = 2;
+        fctx.stroke();
+      });
+      fctx.restore();
+      fctx.globalAlpha = 1;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      document.querySelectorAll("[data-mode]").forEach(btn => btn.classList.toggle("active", btn.dataset.mode === mode));
+      const text = {
+        play: "Pinch to grab and charge the reactor. Two hands amplify it, open palm pushes it, and your camera stays visible under the HUD.",
+        shapes: "Use peace, Korean finger heart, or thumbs up for OK. Signals lock after 400ms for stable creator-friendly shots.",
+        write: "Point with your index finger to draw. Hold an open palm for 500ms to clear the canvas.",
+        slash: "Slice glowing objects with thumb, index, or middle finger. Wider assist hitboxes make fast cuts easier."
+      };
+      hint.textContent = text[mode];
+      if (mode !== "write") clearMeter.style.width = "0%";
+      if (mode !== "slash") state.prevSlashTips = {};
+    }
+
+    async function start() {
+      initAudio();
+      if (audio.ctx?.state === "suspended") await audio.ctx.resume();
+      permission.style.display = "none";
+      try {
+        if (typeof Hands === "undefined") throw new Error("MediaPipe Hands script is still loading. Try again in a moment.");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720, facingMode: "user" },
+          audio: false
+        });
+        video.srcObject = stream;
+        await video.play();
+        statusText.textContent = "Camera Online";
+        statusLight.classList.add("ready");
+        state.cameraReady = true;
+        setupHands();
+      } catch (err) {
+        permission.style.display = "block";
+        statusText.textContent = "Camera Blocked";
+        hint.textContent = "Camera access failed. Open this file over localhost or allow webcam permissions in your browser.";
+        console.error(err);
+      }
+    }
+
+    function setupHands() {
+      const hands = new Hands({
+        locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.72,
+        minTrackingConfidence: 0.68
+      });
+      hands.onResults(updateHandsFromResults);
+      async function detectLoop() {
+        if (video.readyState >= 2) await hands.send({ image: video });
+        requestAnimationFrame(detectLoop);
+      }
+      detectLoop();
+    }
+
+    function updateUi(dt) {
+      state.fpsFrames++;
+      const t = now();
+      if (t - state.fpsLast > 450) {
+        state.fps = Math.round(state.fpsFrames * 1000 / (t - state.fpsLast));
+        state.fpsFrames = 0;
+        state.fpsLast = t;
+        fpsEl.textContent = state.fps;
+      }
+      handsEl.textContent = state.hands.length;
+      updateAudio();
+    }
+
+    function frame(t) {
+      const dt = clamp((t - state.lastFrame) / 1000, 0.001, 0.04);
+      state.lastFrame = t;
+      state.time += dt;
+
+      const gestureInfo = classifyGesture();
+      drawBackground(dt, gestureInfo);
+      updateWriteMode(dt);
+      updateSlashMode(dt);
+      updatePlayReactor(dt);
+      drawHands(dt);
+      if (state.mode === "shapes") drawShapeMode();
+      updateParticles(dt);
+      drawParticles();
+      updateUi(dt);
+      requestAnimationFrame(frame);
+    }
+
+    document.querySelectorAll("[data-mode]").forEach(btn => {
+      btn.addEventListener("click", () => setMode(btn.dataset.mode));
+    });
+    startBtn.addEventListener("click", start);
+    window.addEventListener("resize", resize);
+
+    resize();
+    setMode("play");
+    for (let i = 0; i < 4; i++) spawnSlashObject();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
